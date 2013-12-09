@@ -193,7 +193,13 @@ v0.0.0	2013-08-12	Craig Comberbach
 /*************    Enumeration     ***************/
 /***********State Machine Definitions*************/
 /*************  Global Variables  ***************/
-const int song[] = {A3,C3,E3,G3,E3,G3,B3};
+//Mario Bros. 1 Theme song
+const int song[] = {E5,E5,REST,E5,		REST,C5,E5,REST,	G5,REST,REST,REST,	G4,REST,REST,REST,
+					C5,REST,REST,G4,	REST,REST,E4,REST,	REST,A5,REST,B5,	REST,B5_FLAT,A5,REST,
+					G4,E5,G5,			B6,REST,F5,G5,		REST,E5,REST,C5,	D5,B5,REST,REST,
+					C5,REST,REST,G4,	REST,REST,E4,REST,	REST,A5,REST,B5,	REST,B5_FLAT,A5,REST,
+					G4,E5,G5,			B6,REST,F5,G5,		REST,E5,REST,C5,	D5,B5,REST,REST,
+					};
 
 /*************Function  Prototypes***************/
 /************* Device Definitions ***************/
