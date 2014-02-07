@@ -1,42 +1,19 @@
-/**************************************************************************************************
-Target Hardware:		PIC24FJ256GA1xx
-Chip resources used:	All Output Compare Modules
-Code assumptions:		
-Purpose:				Allow access to the PWM features of an OCM to create music
-Notes:					
+#include "p24FJ256GA106.h"
 
-Version History:
-vnext	Y-M-D	Craig Comberbach	Compiler: C30 v3.31	Optimization = 0	IDE: MPLABx 1.85	Tool: RealICE	Computer: Intel Xeon CPU 3.07 GHz, 6 GB RAM, Windows 7 64 bit Professional SP1
-v0.0.0	2013-08-12	Craig Comberbach
-	Compiler: C30 v3.31	IDE: MPLABx 1.80	Tool: RealICE	Computer: Intel Xeon CPU 3.07 GHz, 6 GB RAM, Windows 7 64 bit Professional SP1
-	Only compile for PIC24FJ256GA106
-	First version
-**************************************************************************************************/
-/*************    Header Files    ***************/
-#include "Config.h"
-#include "Music.h"
-
-/************* Semantic Versioning***************/
-#ifndef MUSIC_LIBRARY
-	#error "You need to include the music library for this code to compile"
-#elif MUSIC_MAJOR != 0
-	#warning "Music.c has had a change that loses some previously supported functionality"
-#elif MUSIC_MINOR != 0
-	#warning "Music.c has new features that this code may benefit from"
-#elif MUSIC_PATCH != 0
-	#warning "Music.c has had a bug fix, you should check to see that we weren't relying on a bug for functionality"
-#endif
-
-/************Arbitrary Functionality*************/
-/*************   Magic  Numbers   ***************/
+//Magic Numbers
 #define Hz      	*1			//Makes defining frequencies and periods a little easier
 #define kHz     	*1000		//Makes defining frequencies and periods a little easier
 #define MHz     	*1000000	//Makes defining frequencies and periods a little easier
 #define mS      	*1000000	//Makes defining frequencies and periods a little easier
 #define uS      	*1000		//Makes defining frequencies and periods a little easier
 #define nS      	*1			//Makes defining frequencies and periods a little easier
+#define FOSC		8000000
 #define PRESCALER	1
 #define BUZZER		1
+
+#if FOSC > 65536000000  //65.536 GHz
+    #error "FOSC is too fast for this code to remain unmodified"
+#endif
 
 //Notes in Hz - Reference from http://www.phy.mtu.edu/~suits/notefreqs.html
 #define REST		0
@@ -184,35 +161,46 @@ v0.0.0	2013-08-12	Craig Comberbach
 #define	E8_FLAT		4978
 
 //Tempo and other global defines
+#define EIGHTH	     	100
 #define QUARTER     	250
 #define HALF			500
 #define THREE_QUARTER	750
 #define ONE				1000
-#define TEMPO   		QUARTER
 
-/*************    Enumeration     ***************/
-/***********State Machine Definitions*************/
-/*************  Global Variables  ***************/
-//Mario Bros. 1 Theme song
+#define HAPPY_BIRTHDAY
+//#define SUPER_MARIO_BROS
+
+#if defined HAPPY_BIRTHDAY
+	#define TEMPO   		150
+#elif defined SUPER_MARIO_BROS
+	#define TEMPO   		EIGHTH	//Super Mario Bros.
+#endif
+
+//Function Prototypes
+void Music_Routine();
+char Set_PWM_Frequency(int frequency, int PWM);
+char Set_PWM_Period(int period, int PWM);
+char Set_PWM_Duty_Cycle(int dutyCycle, int PWM);
+
+//Global Variables
+#if defined HAPPY_BIRTHDAY
+const int song[] = {D4,REST,D4,REST,					E4,REST,D4,REST,G4,REST,			F4,REST,REST,REST,D4,REST,D4,REST,
+					E4,REST,D4,REST,A5,REST,			G4,REST,REST,REST,D4,REST,D4,REST,
+					D5,REST,B5,REST,G4,REST,			F4,REST,E4,REST,C5,REST,C5,REST,
+					B5,REST,G4,REST,A5,REST,			G4,REST,REST,REST,REST
+					};
+#elif defined SUPER_MARIO_BROS
 const int song[] = {E5,E5,REST,E5,		REST,C5,E5,REST,	G5,REST,REST,REST,	G4,REST,REST,REST,
 					C5,REST,REST,G4,	REST,REST,E4,REST,	REST,A5,REST,B5,	REST,B5_FLAT,A5,REST,
 					G4,E5,G5,			B6,REST,F5,G5,		REST,E5,REST,C5,	D5,B5,REST,REST,
 					C5,REST,REST,G4,	REST,REST,E4,REST,	REST,A5,REST,B5,	REST,B5_FLAT,A5,REST,
 					G4,E5,G5,			B6,REST,F5,G5,		REST,E5,REST,C5,	D5,B5,REST,REST,
 					};
-
-/*************Function  Prototypes***************/
-/************* Device Definitions ***************/
-/************* Module Definitions ***************/
-/************* Other  Definitions ***************/
-
-#if FOSC_HZ > 65536000000  //65.536 GHz
-    #error "FOSC is too fast for this code to remain unmodified"
 #endif
 
-//#error "Make a sweep function to go from one freq to another (startFreq, endFreq, length) then it will calculte the size of each division and change it once every loop until it has reached its end frequency"
+//#warning "Make a sweep function to go from one freq to another (startFreq, endFreq, length) then it will calculte the size of each division and change it once every loop until it has reached its end frequency"
 //This function assumes that it is run once every mS
-void Music_Routine(void)
+void Music_Routine()
 {
     static int  noteCounter = 0,
                 currentNote = 0;
@@ -223,7 +211,10 @@ void Music_Routine(void)
         if(currentNote < (sizeof(song)/2))
         	++currentNote;
         else
+		{
+			Set_PWM_Frequency(REST, BUZZER);
 			return;
+		}
     }
 
     Set_PWM_Frequency(song[currentNote], BUZZER);
@@ -238,10 +229,9 @@ char Set_PWM_Frequency(int frequency, int PWM)
 {
     int registerValue;
 
-    //Do some MatheMagic? to come up with the register value
-    registerValue = FOSC_HZ / (2 * PRESCALER * frequency) - 1;
+    //Do some MatheMagic™ to come up with the register value
+    registerValue = FOSC / (2 * PRESCALER * frequency) - 1;
 
-	//Ensure we can do a frequency of 0
 	if(frequency == 0)
 		registerValue = 0;
 
@@ -293,8 +283,8 @@ char Set_PWM_Period(int period, int PWM)
 {
     unsigned int    registerValue;
 
-    //Do some MatheMagic? to come up with the register value
-    registerValue = FOSC_HZ / 1000000;//Precondition FOSC so it isn't too big to multiply
+    //Do some MatheMagic™ to come up with the register value
+    registerValue = FOSC / 1000000;//Precondition FOSC so it isn't too big to multiply
     registerValue *= period / (2 * PRESCALER);//Make the conversion
     registerValue /= 1000;//Finish conditioning
     registerValue--;//Finish the conversion
@@ -345,7 +335,7 @@ char Set_PWM_Duty_Cycle(int dutyCycle, int PWM)
 #error "what format should dutyCycle be in? percent, decacent? millicent? PPM? other?"
 #error "I lose accuracy the lower the period register is...."
 
-    //Do some MatheMagic? to come up with the register value
+    //Do some MatheMagic™ to come up with the register value
     Do something here
 
     switch(PWM)
@@ -650,11 +640,11 @@ void initialize_REPLACE_ME()
 
 	//Unlock
 	__builtin_write_OSCCONL(OSCCON & 0xBF);
-
+	
 	//Assign remappable output pins
-
+	
 	//Lock
 	__builtin_write_OSCCONL(OSCCON | 0x40);
-
+	
 }
 **********************************************************************************/
