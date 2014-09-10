@@ -167,40 +167,41 @@
 #define THREE_QUARTER	750
 #define ONE				1000
 
-#define HAPPY_BIRTHDAY
-//#define SUPER_MARIO_BROS
-
-#if defined HAPPY_BIRTHDAY
-	#define TEMPO   		150
-#elif defined SUPER_MARIO_BROS
-	#define TEMPO   		EIGHTH	//Super Mario Bros.
-#endif
+//#define HAPPY_BIRTHDAY
+//#define TETRIS
+#define SUPER_MARIO_BROS
 
 //Function Prototypes
-void Music_Routine();
 char Set_PWM_Frequency(int frequency, int PWM);
 char Set_PWM_Period(int period, int PWM);
 char Set_PWM_Duty_Cycle(int dutyCycle, int PWM);
 
 //Global Variables
 #if defined HAPPY_BIRTHDAY
+#define TEMPO   	150
 const int song[] = {D4,REST,D4,REST,					E4,REST,D4,REST,G4,REST,			F4,REST,REST,REST,D4,REST,D4,REST,
 					E4,REST,D4,REST,A5,REST,			G4,REST,REST,REST,D4,REST,D4,REST,
 					D5,REST,B5,REST,G4,REST,			F4,REST,E4,REST,C5,REST,C5,REST,
 					B5,REST,G4,REST,A5,REST,			G4,REST,REST,REST,REST
 					};
 #elif defined SUPER_MARIO_BROS
+#define TEMPO   	EIGHTH	//Super Mario Bros.
 const int song[] = {E5,E5,REST,E5,		REST,C5,E5,REST,	G5,REST,REST,REST,	G4,REST,REST,REST,
 					C5,REST,REST,G4,	REST,REST,E4,REST,	REST,A5,REST,B5,	REST,B5_FLAT,A5,REST,
 					G4,E5,G5,			B6,REST,F5,G5,		REST,E5,REST,C5,	D5,B5,REST,REST,
 					C5,REST,REST,G4,	REST,REST,E4,REST,	REST,A5,REST,B5,	REST,B5_FLAT,A5,REST,
 					G4,E5,G5,			B6,REST,F5,G5,		REST,E5,REST,C5,	D5,B5,REST,REST,
 					};
+#elif defined TETRIS
+#define TEMPO		QUARTER
+const int song[] = {E5,B5,C5,D5,B5,		A5,A5,C5,E5,D5,C5,	B5,C5,D5,E5,		C5,A5,A5,A5,B5,C5,
+					D5
+					};
 #endif
 
 //#warning "Make a sweep function to go from one freq to another (startFreq, endFreq, length) then it will calculte the size of each division and change it once every loop until it has reached its end frequency"
 //This function assumes that it is run once every mS
-void Music_Routine()
+int Music_Routine(void)
 {
     static int  noteCounter = 0,
                 currentNote = 0;
@@ -212,14 +213,15 @@ void Music_Routine()
         	++currentNote;
         else
 		{
+			currentNote = 0;
 			Set_PWM_Frequency(REST, BUZZER);
-			return;
+			return 0;
 		}
     }
 
     Set_PWM_Frequency(song[currentNote], BUZZER);
 
-    return;
+    return 1;
 }
 
 //Send frequency in Hz (use the #define Hz, kHz and Mhz for code readability)

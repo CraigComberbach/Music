@@ -1,1 +1,1 @@
-extern void Music_Routine();
+int Music_Routine(void);
